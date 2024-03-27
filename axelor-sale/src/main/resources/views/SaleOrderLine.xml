@@ -144,6 +144,10 @@
 
   <grid title="Sale order lines to invoice" name="sale-order-line-to-invoice-grid"
     model="com.axelor.apps.sale.db.SaleOrderLine" groupBy="saleOrder, project">
+    
+    <toolbar>
+      <button name="generateInvoiceBtn" title="Invoice selected lines" onClick="action-sale-order-line-method-generate-invoice"/>
+    </toolbar>
     <field name="saleOrder"/>
     <field name="saleOrder.company"/>
     <field name="saleOrder.stockLocation"/>
