@@ -142,29 +142,35 @@
     <field name="inTaxTotal" aggregate="sum" x-scale="saleOrder.currency.numberOfDecimals"/>
   </grid>
 
+
+
+
+
+
+
   <grid title="Sale order lines to invoice" name="sale-order-line-to-invoice-grid"
-    model="com.axelor.apps.sale.db.SaleOrderLine" groupBy="saleOrder, project" canNew="false" canEdit="false">
-    
-    <toolbar>
-      <button name="openWizardBtn" title="Invoice selected lines" onClick="action-sale-order-line-to-invoice-view-invoicing-wizard"/>
-    </toolbar>
-    <field name="saleOrder"/>
-    <field name="saleOrder.company"/>
-    <field name="saleOrder.stockLocation"/>
-    <field name="saleOrder.clientPartner"/>
-    <field name="product.code"/>
-    <field name="productName"/>
-    <field name="qty"/>
-    <field name="unit"/>
-    <field name="saleOrder.currency"/>
-    <field name="deliveredQty"/>
-    <field name="priceDiscounted"/>
-    <field name="exTaxTotal"/>
-    <field name="estimatedShippingDate"/>
-    <field name="estimatedDeliveryDate"/>
-    <field name="deliveryState"/>
-    <field name="amountInvoiced"/>
-    <field name="project"/>
+    model="com.axelor.apps.sale.db.SaleOrderLine" editable="true" edit-icon="false" groupBy="saleOrder" canNew="false" canEdit="false">
+    <field name="saleOrder" readonly="true"/>
+    <field name="saleOrder.company" readonly="true"/>
+    <field name="saleOrder.stockLocation" readonly="true"/>
+    <field name="saleOrder.clientPartner" readonly="true"/>
+    <field name="product.code" readonly="true"/>
+    <field name="productName" readonly="true"/>
+    <field name="qty" readonly="true"/>
+    <field name="$qtyToInvoice" title="Qty to invoice" type="decimal"  readonlyIf="invoiceAll"
+           min="0" x-scale="2"/>
+    <field name="invoiceAll" title="Invoice all" type="boolean"
+           onChange="action-attrs-sale-order-line-invoicing-wizard-fill-qty"/>
+    <field name="unit" readonly="true"/>
+    <field name="saleOrder.currency" readonly="true"/>
+    <field name="deliveredQty" readonly="true"/>
+    <field name="priceDiscounted" readonly="true"/>
+    <field name="exTaxTotal" readonly="true"/>
+    <field name="estimatedShippingDate" readonly="true"/>
+    <field name="estimatedDeliveryDate" readonly="true"/>
+    <field name="deliveryState" readonly="true"/>
+    <field name="amountInvoiced" readonly="true"/>
+    <field name="project" readonly="true"/>
     <button name="openSalorderBtn" icon="fa-line-chart" onClick="action-open-sale-order-view"/>
   </grid>
 
@@ -174,42 +180,27 @@
     <context name="_showRecord" expr="eval: __this__.saleOrder.id"/>
   </action-view>
 
-  <action-view name="action-sale-order-line-to-invoice-view-invoicing-wizard" title="Lines to invoice" model="com.axelor.apps.sale.db.SaleOrderLine">
-    <view type="grid" name="invoicing-wizard-sale-order-line-grid-menu"/>
-    <view-param name="popup-save" value="false"/>
-    <view-param name="popup" value="true"/>
-    <domain>self.invoiced = false OR self.amountInvoiced &lt; self.qty * self.price</domain>
-  </action-view>
-
-
-  <grid name="invoicing-wizard-sale-order-line-grid-menu" title="Lines to invoice" edit-icon="false" editable="true"
-        model="com.axelor.apps.sale.db.SaleOrderLine" groupBy="saleOrder, project" canNew="false" canDelete="false" canSave="false"
-  >
-
-    <toolbar>
+  <form name="sale-order-line-multi-invoicing-form" model="com.axelor.apps.sale.db.SaleOrderLine"
+        title="Mass sale order line invoicing">
+    <panel-related name="saleOrderLineTListoInvoicePanel"
+                   field="$saleOrderLineListToInvoice" title="Sale order lines to invoice" colSpan="12"
+                   height="25" type="many-to-many" target="com.axelor.apps.sale.db.SaleOrderLine"
+                   domain="(self.invoiced = false OR self.amountInvoiced &lt; self.qty * self.price) AND self.saleOrder.statusSelect = 3"
+                   canNew="false" canEdit="true" grid-view="sale-order-line-to-invoice-grid"
+                   form-view="sale-order-line-form"/>
+    <panel sidebar="true" name="actionsPanel" title="Actions">
       <button name="generateInvoiceBtn" title="Invoice selected lines" onClick="action-sale-order-line-method-generate-invoice"/>
-    </toolbar>
-    <field name="saleOrder" hidden="true"/>
-    <field name="project" hidden="true"/>
-    <field name="product.code" width="120"/>
-    <field name="productName" readonly="true"/>
-    <field name="qty" readonly="true" />
-    <field name="unit" readonly="true" form-view="unit-form" grid-view="unit-grid"/>
-    <field name="price" readonly="true"/>
-    <field name="exTaxTotal" readonly="true"
-           x-scale="saleOrder.currency.numberOfDecimals"/>
-    <field name="amountInvoiced" readonly="true" x-scale="saleOrder.currency.numberOfDecimals"/>
-    <field name="qtyToInvoice" title="Qty to invoice" type="decimal" readonlyIf="invoiceAll"
-           min="0" x-scale="2"/>
-    <field name="invoiceAll" title="Invoice all" type="boolean"
-           onChange="action-attrs-sale-order-line-invoicing-wizard-fill-qty"/>
-    <field name="saleOrder.currency.numberOfDecimals" hidden="true"/>
-
-  </grid>
+    </panel>
+  </form>
 
   <action-method name="action-sale-order-line-method-generate-invoice">
     <call class="com.axelor.apps.supplychain.web.SaleOrderController" method="generateInvoicesFromSelectedLines"/>
   </action-method>
+
+
+
+
+
 
   <form name="sale-order-line-project-form" title="SO line"
     model="com.axelor.apps.sale.db.SaleOrderLine"
