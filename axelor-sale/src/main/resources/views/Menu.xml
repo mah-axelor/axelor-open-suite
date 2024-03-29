@@ -111,7 +111,7 @@
     title="Sale order lines to invoice" model="com.axelor.apps.sale.db.SaleOrderLine">
     <view type="grid" name="sale-order-line-to-invoice-grid"/>
     <view type="form" name="sale-order-line-form"/>
-    <domain>self.invoiced = false</domain>
+    <domain>self.invoiced = false OR self.amountInvoiced &lt; self.qty * self.price</domain>
   </action-view>
 
   <search-filters name="sc.root.sale.templates.filter"
