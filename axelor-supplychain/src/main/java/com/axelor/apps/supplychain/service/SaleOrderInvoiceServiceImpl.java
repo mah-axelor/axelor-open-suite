@@ -73,6 +73,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -950,5 +951,33 @@ public class SaleOrderInvoiceServiceImpl implements SaleOrderInvoiceService {
       }
     }
     return sumInvoices;
+  }
+
+  @Transactional
+  public void generateInvoicesFromSOL(Map<SaleOrder,Map<Long, BigDecimal>> priceMaps,Map<SaleOrder,Map<Long, BigDecimal>> qtyToInvoiceMaps,
+                                      Map<SaleOrder,Map<Long, BigDecimal>> qtyMaps, Map<SaleOrder,BigDecimal> amountToInvoiceMap, boolean isPercent, int operationSelect) throws AxelorException {
+
+    for(Map.Entry<SaleOrder,BigDecimal> entry: amountToInvoiceMap.entrySet()){
+     SaleOrder saleOrder = entry.getKey();
+      entry.setValue(computeAmountToInvoice(
+              entry.getValue(),
+              operationSelect,
+              saleOrder,
+              qtyToInvoiceMaps.get(saleOrder),
+              priceMaps.get(saleOrder),
+              qtyMaps.get(saleOrder),
+              isPercent));
+
+      displayErrorMessageIfSaleOrderIsInvoiceable(
+              saleOrder, entry.getValue(), isPercent);
+
+      generateInvoice(
+              saleOrder,
+              operationSelect,
+              entry.getValue(),
+              isPercent,
+              qtyToInvoiceMaps.get(saleOrder),
+              new ArrayList<>());
+    }
   }
 }

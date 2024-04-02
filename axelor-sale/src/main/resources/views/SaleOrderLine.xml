@@ -162,6 +162,7 @@
     <field name="saleOrder.currency" readonly="true"/>
     <field name="deliveredQty" readonly="true"/>
     <field name="priceDiscounted" readonly="true"/>
+    <field name="price" readonly="true"/>
     <field name="exTaxTotal" readonly="true"/>
     <field name="estimatedShippingDate" readonly="true"/>
     <field name="estimatedDeliveryDate" readonly="true"/>
