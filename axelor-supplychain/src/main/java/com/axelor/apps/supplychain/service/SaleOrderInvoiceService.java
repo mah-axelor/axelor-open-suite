@@ -304,6 +304,12 @@ public interface SaleOrderInvoiceService {
 
   void updateInvoicingState(SaleOrder saleOrder);
 
-  void generateInvoicesFromSOL(Map<SaleOrder,Map<Long, BigDecimal>> priceMaps,Map<SaleOrder,Map<Long, BigDecimal>> qtyToInvoiceMaps,
-                               Map<SaleOrder,Map<Long, BigDecimal>> qtyMaps, Map<SaleOrder,BigDecimal> amountToInvoiceMap, boolean isPercent, int operationSelect) throws AxelorException;
+  void generateInvoicesFromSOL(
+      Map<SaleOrder, Map<Long, BigDecimal>> priceMaps,
+      Map<SaleOrder, Map<Long, BigDecimal>> qtyToInvoiceMaps,
+      Map<SaleOrder, Map<Long, BigDecimal>> qtyMaps,
+      Map<SaleOrder, BigDecimal> amountToInvoiceMap,
+      boolean isPercent,
+      int operationSelect)
+      throws AxelorException;
 }

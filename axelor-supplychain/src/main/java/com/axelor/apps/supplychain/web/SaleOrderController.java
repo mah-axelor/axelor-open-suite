@@ -18,6 +18,8 @@
  */
 package com.axelor.apps.supplychain.web;
 
+import static java.util.stream.Collectors.groupingBy;
+
 import com.axelor.apps.account.db.Invoice;
 import com.axelor.apps.account.db.repo.InvoiceRepository;
 import com.axelor.apps.base.ResponseMessageType;
@@ -37,7 +39,6 @@ import com.axelor.apps.sale.service.app.AppSaleService;
 import com.axelor.apps.stock.db.StockLocation;
 import com.axelor.apps.stock.db.StockMove;
 import com.axelor.apps.stock.db.repo.StockMoveRepository;
-import com.axelor.apps.supplychain.db.Timetable;
 import com.axelor.apps.supplychain.exception.SupplychainExceptionMessage;
 import com.axelor.apps.supplychain.service.PurchaseOrderFromSaleOrderLinesService;
 import com.axelor.apps.supplychain.service.SaleOrderInvoiceService;
@@ -58,13 +59,9 @@ import com.axelor.meta.schema.actions.ActionView;
 import com.axelor.rpc.ActionRequest;
 import com.axelor.rpc.ActionResponse;
 import com.axelor.rpc.Context;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.inject.Singleton;
-import com.google.inject.persist.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -75,10 +72,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.groupingBy;
 
 @Singleton
 public class SaleOrderController {
@@ -256,9 +250,9 @@ public class SaleOrderController {
 
       // Information to send to the service to handle an invoicing on timetables
       ArrayList<LinkedHashMap<String, Object>> uninvoicedTimetablesList =
-              (context.get("uninvoicedTimetablesList") != null)
-                      ? (ArrayList<LinkedHashMap<String, Object>>) context.get("uninvoicedTimetablesList")
-                      : null;
+          (context.get("uninvoicedTimetablesList") != null)
+              ? (ArrayList<LinkedHashMap<String, Object>>) context.get("uninvoicedTimetablesList")
+              : null;
       List<Long> timetableIdList = getTimetableIdList(uninvoicedTimetablesList);
 
       saleOrder = Beans.get(SaleOrderRepository.class).find(saleOrder.getId());
@@ -292,7 +286,8 @@ public class SaleOrderController {
     }
   }
 
-  private static List<Long> getTimetableIdList(ArrayList<LinkedHashMap<String, Object>> uninvoicedTimetablesList) {
+  private static List<Long> getTimetableIdList(
+      ArrayList<LinkedHashMap<String, Object>> uninvoicedTimetablesList) {
     List<Long> timetableIdList = new ArrayList<>();
     if (uninvoicedTimetablesList != null && !uninvoicedTimetablesList.isEmpty()) {
 
@@ -305,7 +300,11 @@ public class SaleOrderController {
     return timetableIdList;
   }
 
-  private void fillMaps(List<Map<String, Object>> saleOrderLineListContext, Map<Long, BigDecimal> qtyToInvoiceMap, Map<Long, BigDecimal> priceMap, Map<Long, BigDecimal> qtyMap) {
+  private void fillMaps(
+      List<Map<String, Object>> saleOrderLineListContext,
+      Map<Long, BigDecimal> qtyToInvoiceMap,
+      Map<Long, BigDecimal> priceMap,
+      Map<Long, BigDecimal> qtyMap) {
     for (Map<String, Object> map : saleOrderLineListContext) {
       if (map.get(SO_LINES_WIZARD_QTY_TO_INVOICE_FIELD) != null) {
         BigDecimal qtyToInvoiceItem =
@@ -322,42 +321,56 @@ public class SaleOrderController {
     }
   }
 
-
-  public void generateInvoicesFromSelectedLines(ActionRequest request, ActionResponse response){
+  public void generateInvoicesFromSelectedLines(ActionRequest request, ActionResponse response) {
 
     try {
 
-SaleOrderRepository saleOrderRepository = Beans.get(SaleOrderRepository.class);
+      SaleOrderRepository saleOrderRepository = Beans.get(SaleOrderRepository.class);
       Context context = request.getContext();
       List<Map<String, Object>> saleOrderLineListContext;
       saleOrderLineListContext =
-              (List<Map<String, Object>>) request.getRawContext().get("saleOrderLineListToInvoice");
+          (List<Map<String, Object>>) request.getRawContext().get("saleOrderLineListToInvoice");
+      if (saleOrderLineListContext.isEmpty()) {
+        response.setAlert(I18n.get("No items have been selected."));
+        return;
+      }
       int operationSelect = SaleOrderRepository.INVOICE_LINES;
       boolean isPercent = (Boolean) context.getOrDefault("isPercent", false);
 
-  Map<SaleOrder,List<Map<String, Object>>> saleOrderLineListContextMap =  saleOrderLineListContext.stream().collect(groupingBy(
-          stringObjectMap -> saleOrderRepository.find(Long.valueOf((Integer) ((LinkedHashMap<?, ?>)stringObjectMap.get("saleOrder")).get("id")))));
+      Map<SaleOrder, List<Map<String, Object>>> saleOrderLineListContextMap =
+          saleOrderLineListContext.stream()
+              .collect(
+                  groupingBy(
+                      stringObjectMap ->
+                          saleOrderRepository.find(
+                              Long.valueOf(
+                                  (Integer)
+                                      ((LinkedHashMap<?, ?>) stringObjectMap.get("saleOrder"))
+                                          .get("id")))));
 
-      Map<SaleOrder,BigDecimal> amountToInvoiceMap = new HashMap<>();
-      Map<SaleOrder,Map<Long, BigDecimal>> qtyMaps = new HashMap<>();
-      Map<SaleOrder,Map<Long, BigDecimal>> qtyToInvoiceMaps = new HashMap<>();
-      Map<SaleOrder,Map<Long, BigDecimal>>priceMaps = new HashMap<>();
-  for(Map.Entry<SaleOrder, List<Map<String,Object>>> entry : saleOrderLineListContextMap.entrySet()){
-    SaleOrder saleOrder = entry.getKey();
-    BigDecimal amountToInvoice = saleOrder.getExTaxTotal().subtract(saleOrder.getAmountInvoiced());
-      amountToInvoiceMap.put(saleOrder, amountToInvoice);
-    Map<Long, BigDecimal> qtyMap = new HashMap<>();
-    Map<Long, BigDecimal> qtyToInvoiceMap = new HashMap<>();
-    Map<Long, BigDecimal> priceMap = new HashMap<>();
-    fillMaps(entry.getValue(), qtyToInvoiceMap, priceMap, qtyMap);
-    qtyMaps.put(saleOrder,qtyMap);
-    qtyToInvoiceMaps.put(saleOrder, qtyToInvoiceMap);
-    priceMaps.put(saleOrder, priceMap);
-  }
+      Map<SaleOrder, BigDecimal> amountToInvoiceMap = new HashMap<>();
+      Map<SaleOrder, Map<Long, BigDecimal>> qtyMaps = new HashMap<>();
+      Map<SaleOrder, Map<Long, BigDecimal>> qtyToInvoiceMaps = new HashMap<>();
+      Map<SaleOrder, Map<Long, BigDecimal>> priceMaps = new HashMap<>();
+      for (Map.Entry<SaleOrder, List<Map<String, Object>>> entry :
+          saleOrderLineListContextMap.entrySet()) {
+        SaleOrder saleOrder = entry.getKey();
+        BigDecimal amountToInvoice =
+            saleOrder.getExTaxTotal().subtract(saleOrder.getAmountInvoiced());
+        amountToInvoiceMap.put(saleOrder, amountToInvoice);
+        Map<Long, BigDecimal> qtyMap = new HashMap<>();
+        Map<Long, BigDecimal> qtyToInvoiceMap = new HashMap<>();
+        Map<Long, BigDecimal> priceMap = new HashMap<>();
+        fillMaps(entry.getValue(), qtyToInvoiceMap, priceMap, qtyMap);
+        qtyMaps.put(saleOrder, qtyMap);
+        qtyToInvoiceMaps.put(saleOrder, qtyToInvoiceMap);
+        priceMaps.put(saleOrder, priceMap);
+      }
 
-
-      Beans.get(SaleOrderInvoiceService.class).generateInvoicesFromSOL(priceMaps,qtyToInvoiceMaps,qtyMaps,amountToInvoiceMap,isPercent,operationSelect);
-
+      Beans.get(SaleOrderInvoiceService.class)
+          .generateInvoicesFromSOL(
+              priceMaps, qtyToInvoiceMaps, qtyMaps, amountToInvoiceMap, isPercent, operationSelect);
+      response.setCanClose(true);
 
     } catch (Exception e) {
       TraceBackService.trace(response, e);

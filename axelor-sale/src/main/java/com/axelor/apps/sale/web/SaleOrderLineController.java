@@ -44,14 +44,17 @@ import com.axelor.auth.AuthUtils;
 import com.axelor.db.mapper.Mapper;
 import com.axelor.i18n.I18n;
 import com.axelor.inject.Beans;
+import com.axelor.meta.schema.actions.ActionView;
 import com.axelor.rpc.ActionRequest;
 import com.axelor.rpc.ActionResponse;
 import com.axelor.rpc.Context;
 import com.google.inject.Singleton;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 
 @Singleton
@@ -457,6 +460,33 @@ public class SaleOrderLineController {
           response.setValue("productName", productName);
         }
       }
+    } catch (Exception e) {
+      TraceBackService.trace(response, e);
+    }
+  }
+
+  public void setSaleOrderLineListToInvoice(ActionRequest request, ActionResponse response) {
+    try {
+      List<Long> selectedLinesIDs =
+          (Optional.ofNullable((List<Integer>) request.getContext().get("_ids")))
+              .stream()
+                  .flatMap(List::stream)
+                  .mapToLong(Integer::longValue)
+                  .boxed()
+                  .collect(Collectors.toList());
+      List<SaleOrderLine> selectedSaleOrderLineList =
+          Beans.get(SaleOrderLineRepository.class).findByIds(selectedLinesIDs);
+      List<Map<String, Object>> selectedSaleOrderLineMapList =
+          selectedSaleOrderLineList.stream().map(Mapper::toMap).collect(Collectors.toList());
+      response.setView(
+          ActionView.define(I18n.get("SOL to invoice"))
+              .model("com.axelor.apps.sale.db.SaleOrderLine")
+              .add("form", "sale-order-line-multi-invoicing-form")
+              .param("popup", "true")
+              .param("popup-save", "false")
+              .context("_saleOrderLineListToInvoice", selectedSaleOrderLineMapList)
+              .map());
+
     } catch (Exception e) {
       TraceBackService.trace(response, e);
     }

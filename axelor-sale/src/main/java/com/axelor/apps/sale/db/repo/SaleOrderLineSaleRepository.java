@@ -33,9 +33,6 @@ public class SaleOrderLineSaleRepository extends SaleOrderLineRepository {
         "$nbDecimalDigitForUnitPrice",
         Beans.get(AppBaseService.class).getNbDecimalDigitForUnitPrice());
     json.put("$nbDecimalDigitForQty", Beans.get(AppBaseService.class).getNbDecimalDigitForQty());
-    if(Boolean.TRUE.equals(context.get("_computeQtyToInvoice"))){
-      json.put("$qtyToInvoice", 0);
-    }
     if (context.get("_model") != null
         && (context.get("_model").equals(SaleOrder.class.getName())
             || context.get("_model").equals(SaleOrderLine.class.getName()))
