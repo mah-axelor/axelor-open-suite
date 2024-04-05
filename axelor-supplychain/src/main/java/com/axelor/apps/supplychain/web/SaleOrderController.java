@@ -228,8 +228,7 @@ public class SaleOrderController {
       Map<Long, BigDecimal> qtyToInvoiceMap = new HashMap<>();
       Map<Long, BigDecimal> priceMap = new HashMap<>();
 
-      List<Map<String, Object>> saleOrderLineListContext;
-      saleOrderLineListContext =
+      List<Map<String, Object>> saleOrderLineListContext =
           (List<Map<String, Object>>) request.getRawContext().get("saleOrderLineList");
 
       fillMaps(saleOrderLineListContext, qtyToInvoiceMap, priceMap, qtyMap);
